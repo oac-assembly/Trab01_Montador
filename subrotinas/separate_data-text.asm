@@ -1,36 +1,21 @@
 	.data
-filename:		.asciiz "/home/daniel/Mars_OAC/Trab01/Trab01_Montador/exemplos/exemplo.asm"
-buffer:  		.space 	15000		# Local da memória onde serão armazenados os caracteres do arquivo lido
-data_buffer:		.space	15000		# Mais informações em subrotinas/separate_data-text.asm
-text_label:		.ascii	".text"		# Mais informações em subrotinas/separate_data-text.asm
+buffer:  		.space  15000	# Buffer onde serão armazenados os caracteres do arquivo
+data_buffer:		.space	15000	# Buffer onde estão armazenados os caracteres pertencentes a seção .data
+text_label:		.ascii	".text"
 openfileErrorWarning:	.asciiz "Erro - O arquivo n�o foi aberto corretamente!"
  
 	.text
-### Abrindo o arquivo indicado por "filename"
-openfile:
-li	$v0,13			# Syscall - c�digo em v0 para abrir arquivo
-la	$a0,filename		# Nome do arquivo
-li	$a1,0 			# Abrir para ler (0: leitura, 1: escrita)
-li 	$a2,0			# Modo � ignorado
-syscall				# Abre o arquivo
-beq	$v0,-1,openfileError	# Erro 
-move	$s0,$v0			# Salva a descri��o do arquivo
-j	readfile
-
-### Indicando se houve erro para abrir o arquivo
-openfileError:
-li  	$v0,4          			# Syscall - C�digo em v0 para printar string
-la	$a0,openfileErrorWarning   	# Buffer
-syscall            			# Print string
-j	openfile
-
-### Lendo 1 caracatere do arquivo aberto e guardando em "buffer"
-readfile:
-li	$v0,14		# Syscall - c�digo em v0 para ler arquivo
-move	$a0,$s0		# Descri��o do arquivo que dever� ser lido
-la	$a1,buffer	# Buffer de leitura
-li	$a2,15000	# N�mero m�ximo de caracteres a serem lidos
-syscall			# L� o arquivo
+#########################################################################################
+#
+#	Descrição - Rotina que a partir de um arquivo .asm armazenado em buffer separa .data e .text em dois buffers diferente.
+#		    Após sua execução o registrador $s0 aponta para onde começa o .text e oque existe em .data fica na memória em
+#                   data_buffer.
+#       Entrada   - Endereço do buffer do arquivo lido
+#                 - Endereço do buffer onde serão colocados os caracteres de .data
+#                 - Endereço de onde fica a string de comparação .text
+#	Saída     - String com \0 concatenado, Registrador: $v0
+#       
+########################################################################################
 
 ### Lendo caractere por caractere e colocando em data_buffer até encontrar um ponto
 separate_data_text:
@@ -60,23 +45,5 @@ lb	$t9,0($a2)		# Coloca um determinado caractere de "text" em $t9
 bne	$t8,$t9,store_byte_data # Se o caracter que pertencere a uma label com . não for igual a algum caractere de .text vá para store_byte-data
 slt	$t6,$a2,$a1		# Coloca 1 em $t6 enquanto o endereço apontado por $t9 não passar do final de "text"
 addi	$t7,$zero,1		# Coloca 1 no registrador $t7
-bne 	$t6,$t7,print		# Se $t9 tiver passado do tamanho máximo de "text" significa que chegamos em um .text, se isso acontecer $t6 é zero
+bne 	$t6,$t7,proxima_sub	# Se $t9 tiver passado do tamanho máximo de "text" significa que chegamos em um .text, se isso acontecer $t6 é zero
 beq	$t8,$t9,compare_chars	# Se $t9 não tiver passado do tamanho máximo de "text" e os caracteres comparados foram iguais vá para compare_chars para continuar comparando
-
-### Printando o que esta guardado em "buffer"
-print:
-li  $v0, 4          	# Syscall - C�digo em v0 para printar string
-la  $a0, data_buffer    # Buffer a ser printado
-syscall            	# Print string
-
-### Fechando o arquivo
-closefile:
-li	$v0,16		# Syscall - c�digo em v0 para fechar arquivo
-move	$a0,$s0		# Descri��o do arquivo que dever� ser fechado
-syscall			# Fecha o arquivo
-
-
-
-
-
-
