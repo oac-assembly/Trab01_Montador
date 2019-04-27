@@ -22,7 +22,8 @@ openfileError:
 li  	$v0,4          			# Syscall - C�digo em v0 para printar string
 la	$a0,openfileErrorWarning   	# Buffer
 syscall            			# Print string
-j	openfile
+li 	$v0, 10				# Syscall - Código em v0 para sair do programa
+syscall 
 
 ### Lendo 1 caracatere do arquivo aberto e guardando em "buffer"
 readfile:
