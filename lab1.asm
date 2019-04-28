@@ -73,6 +73,9 @@ syscall            	# Print string
 
 #### Subrotina para encontrar a linha
 find_line:
+addi	$sp,$sp,-4 		# Criando pilha para adcionar o valor de $so		
+sw	$s0,0($sp)		# Adicionando o valor de $s0 na pilha 
+
 la 	$s0,buffer		# Coloca o endereço de ínicio de buffer no registrador temporário $t1
 la	$t2,line_buffer		# Coloca o endereço de início de line_buffer no registrador temporário $t2
 addi	$s2,$s2,10		# Coloca o valor 10 (valor ascii para "\n") no registrador $s1
@@ -86,6 +89,8 @@ syscall            	# Print linha
 # j xxxx subrotina para limpar o line_buffer (ainda tem que ser implementada)
 #addi	$s0,$s0,1	# Incrementa o endereço do buffer para pegar o próximo caractere e montar a linha, linha comentada em quanto a subrotina acima nao for implementada
 # bne $x,$x, compare_to_find_line:  # Implementar aqui uma forma de saber o final do buffer para sair do loop 
+lw	$s0,0($sp)
+addi 	$sp, $sp, 4
 j closefile # Fechando o arquivo por enquanto que nao tem a subrotina de processar labels, apagar essa linha após implementacao 
 
 ### Coloca o byte/caractere de buffer em line_buffer
@@ -100,9 +105,3 @@ closefile:
 li	$v0,16		# Syscall - c�digo em v0 para fechar arquivo
 move	$a0,$s0		# Descri��o do arquivo que dever� ser fechado
 syscall			# Fecha o arquivo
-
-
-
-
-
-
