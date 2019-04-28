@@ -2,6 +2,7 @@
 filename:		.asciiz "/home/daniel/Mars_OAC/Trab01/Trab01_Montador/exemplos/exemplo.asm"
 buffer:  		.space 	15000		# Local da memória onde serão armazenados os caracteres do arquivo lido
 data_buffer:		.space	15000		# Mais informações em subrotinas/separate_data-text.asm
+line_buffer:		.space	72		# Buffer onde será armazenada a linha encontrada no arquivo lido
 text_label:		.ascii	".text"		# Mais informações em subrotinas/separate_data-text.asm
 openfileErrorWarning:	.asciiz "Erro - O arquivo n�o foi aberto corretamente!"
  
@@ -69,6 +70,30 @@ print:
 li  $v0, 4          	# Syscall - C�digo em v0 para printar string
 la  $a0, data_buffer    # Buffer a ser printado
 syscall            	# Print string
+
+#### Subrotina para encontrar a linha
+find_line:
+la 	$s0,buffer		# Coloca o endereço de ínicio de buffer no registrador temporário $t1
+la	$t2,line_buffer		# Coloca o endereço de início de line_buffer no registrador temporário $t2
+addi	$s2,$s2,10		# Coloca o valor 10 (valor ascii para "\n") no registrador $s1
+compare_to_find_line:
+lb	$t3,0($s0)		       # Coloca o byte/caractere armazenado no endereço $t1 no registrador $t3
+bne	$t3,$s2,save_line_on_buffer    # Se o byte/caractere armazenado no endereço $t3 for diferente a 10 (valor ascii para "\n") pule para save_line_on_buffer
+li  $v0, 4          	# Syscall - C�digo em v0 para printar string
+la  $a0, line_buffer	# Buffer linha a ser printada
+syscall            	# Print linha
+# jal xxxx Colocar aqui a subrotina de processar os labels, usar jr para retornar e exercutar a proxima linha abaixo
+# j xxxx subrotina para limpar o line_buffer (ainda tem que ser implementada)
+#addi	$s0,$s0,1	# Incrementa o endereço do buffer para pegar o próximo caractere e montar a linha, linha comentada em quanto a subrotina acima nao for implementada
+# bne $x,$x, compare_to_find_line:  # Implementar aqui uma forma de saber o final do buffer para sair do loop 
+j closefile # Fechando o arquivo por enquanto que nao tem a subrotina de processar labels, apagar essa linha após implementacao 
+
+### Coloca o byte/caractere de buffer em line_buffer
+save_line_on_buffer:
+sb	$t3,0($t2)		# Caso o caractere não seja "\n" coloca o mesmo no line_buffer
+addi	$s0,$s0,1		# Caso o caractere não for "\n" incrementa o endereço do buffer para pegar o próximo caractere
+addi	$t2,$t2,1		# Incrementa o endereço que aponta para line_buffer
+j	compare_to_find_line
 
 ### Fechando o arquivo
 closefile:
