@@ -1,9 +1,20 @@
 	.data
-filename:		.asciiz "arquivo.asm"
+filename:		.asciiz "/home/daniel/Mars_OAC/Trab01/Trab01_Montador/exemplos/exemplo.asm"
 buffer:  		.space 	15000		# Local da memória onde serão armazenados os caracteres do arquivo lido
 data_buffer:		.space	15000		# Mais informações em subrotinas/separate_data-text.asm
+text_buffer:		.space	1000		# Mais informações em subrotinas/separate_data-text.asm
 line_buffer:		.space	100		# Buffer onde será armazenada a linha encontrada no arquivo lido
 text_label:		.ascii	".text"		# Mais informações em subrotinas/separate_data-text.asm
+
+mifdata:		.asciiz "C:\\oac_lab1\\mifdata.mif"
+miftext:		.asciiz "C:\\oac_lab1\\miftext.mif" 
+cabecalho_mifdata:	.ascii	"DEPTH = 16384;\nWIDTH = 32;\nADDRESS_RADIX = HEX;\nDATA_RADIX = HEX;\nCONTENT\nBEGIN\n" 
+cabecalho_miftext:	.ascii	"DEPTH = 4096;\nWIDTH = 32;\nADDRESS_RADIX = HEX;\nDATA_RADIX = HEX;\nCONTENT\nBEGIN\n"
+endmif:			.asciiz	"END;"
+colon_space:		.ascii	" : "
+jumpline:		.ascii	";\n"
+hexa_ascii:		.space	8
+
 openfileErrorWarning:	.asciiz "Erro - O arquivo n�o foi aberto corretamente!"
  
 	.text
@@ -26,7 +37,7 @@ syscall            			# Print string
 li 	$v0, 10				# Syscall - Código em v0 para sair do programa
 syscall 
 
-### Lendo 1 caracatere do arquivo aberto e guardando em "buffer"
+### Lendo 15000 caracateres do arquivo aberto e guardando em "buffer"
 readfile:
 li	$v0,14		# Syscall - c�digo em v0 para ler arquivo
 move	$a0,$s0		# Descri��o do arquivo que dever� ser lido
@@ -34,18 +45,20 @@ la	$a1,buffer	# Buffer de leitura
 li	$a2,15000	# N�mero m�ximo de caracteres a serem lidos
 syscall			# L� o arquivo
 
+########################## Dividindo .data e .text em 2 buffers separados, data_buffer e text_buffer respectivamente ###########################3
+
 ### Lendo caractere por caractere e colocando em data_buffer até encontrar um ponto
 separate_data_text:
-la 	$s0,buffer		# Coloca o endereço de ínicio de buffer no registrador temporário $t1
+la 	$s6,buffer		# Coloca o endereço de ínicio de buffer no registrador temporário $s6
 la	$t2,data_buffer		# Coloca o endereço de início de data_buffer no registrador temporário $t2
 addi	$s1,$s1,46		# Coloca o valor 46 (valor ascii para ".") no registrador $s1
 compare_char:
-lb	$t3,0($s0)		# Coloca o byte/caractere armazenado no endereço $t1 no registrador $t3
+lb	$t3,0($s6)		# Coloca o byte/caractere armazenado no endereço $t1 no registrador $t3
 beq	$t3,$s1,found_dot	# Se o byte/caractere armazenado no endereço $t3 for igual a 46 (valor ascii para ".") pule para found_text
 ### Coloca o byte/caractere de buffer em data_buffer
 store_byte_data:	
 sb	$t3,0($t2)		# Caso o caractere não seja "." coloca o mesmo no buffer que contém os caracteres de .data
-addi	$s0,$s0,1		# Caso o caractere não for "." incrementa o endereço do buffer para pegar o próximo caractere
+addi	$s6,$s6,1		# Caso o caractere não for "." incrementa o endereço do buffer para pegar o próximo caractere
 addi	$t2,$t2,1		# Incrementa o endereço que aponta para data_buffer
 j	compare_char
 ### Subrotina que determina se o ponto achado está associado com .text
@@ -53,7 +66,7 @@ found_dot:
 la	$a2,text_label		# Guarda o endereço de início de onde está armazenada a string: "text"
 la	$a1,text_label		# Coloca o endereço de início de onde está armazenada a string: "text"
 addi	$a1,$a1,4		# Coloca o endereço após o último caractere de "text", ou seja 5 (tamanho de .text) + 1
-add	$t1,$zero,$s0		# Coloca o endereço do caractere de buffer apontado por $s0 em $t1 afim de preservar o endereço
+add	$t1,$zero,$s6		# Coloca o endereço do caractere de buffer apontado por $s0 em $t1 afim de preservar o endereço
 compare_chars:
 addi	$t1,$t1,1		# Incrementa $t1 para pegar o próximo caractere depois do ponto "." encontrado
 addi	$a2,$a2,1
@@ -62,15 +75,33 @@ lb	$t9,0($a2)		# Coloca um determinado caractere de "text" em $t9
 bne	$t8,$t9,store_byte_data # Se o caracter que pertencere a uma label com . não for igual a algum caractere de .text vá para store_byte-data
 slt	$t6,$a2,$a1		# Coloca 1 em $t6 enquanto o endereço apontado por $t9 não passar do final de "text"
 addi	$t7,$zero,1		# Coloca 1 no registrador $t7
-bne 	$t6,$t7,print		# Se $t9 tiver passado do tamanho máximo de "text" significa que chegamos em um .text, se isso acontecer $t6 é zero
+bne 	$t6,$t7,store_text    	# Se $t9 tiver passado do tamanho máximo de "text" significa que chegamos em um .text, se isso acontecer $t6 é zero
 beq	$t8,$t9,compare_chars	# Se $t9 não tiver passado do tamanho máximo de "text" e os caracteres comparados foram iguais vá para compare_chars para continuar comparando
+### Subrotina de colocar todos os caracteres de um arquivo em um buffer
+store_text:
+la	$t0,text_buffer		# Coloca o endereço de text_buffer em $t0
+la	$t1,buffer		# Coloca o endereço de buffer em $t1
+addi	$t2,$t1,1000		# Soma o endereço de buffer com a quantidade de elementos que ele possui, 15000
+add	$t3,$zero,$s6		# Coloca o endereço em $s0 (aponta pra o . de .text) no registrador $t3
+move_char_buffer:
+lb	$t4,0($t3)		# Coloca o byte/caractere em $t3 no registrador $t4
+sb	$t4,0($t0)		# Coloca o byte/caractere em $t3 no endereço de text_buffer 0($t0)
+addi	$t0,$t0,1		# Incrementa o endereço de text_buffer
+addi	$t3,$t3,1		# Incrementa o ponteiro para o próxima caractere de buffer
+beq	$t2,$t3,print		# Caso $t2 (endereço fim do arquivo) e $t3 (ponteiro para caractere a partir do . de .text) forem iguais o arquivo chegou ao fim
+bne	$t2,$t3,move_char_buffer # Caso $t2 e $t3 não forem iguais volte para o loop
+
+###################### Função momentanea para printar ###################################
 
 ### Printando o que esta guardado em "buffer"
 print:
-li  $v0, 4          	# Syscall - C�digo em v0 para printar string
-la  $a0, data_buffer    # Buffer a ser printado
-syscall            	# Print string
+li  $v0, 4          		# Syscall - C�digo em v0 para printar string
+la  $a0, data_buffer    	# Buffer a ser printado
+syscall            		# Print string
 la $a0,data_buffer		# Coloca o endereço de ínicio de data_buffer no registrador temporário $s1 para utilizar como parametro para subrotina read_lina
+
+##################### Subrotina para identificar linhas ##################################
+
 #### Subrotina para encontrar a linha
 find_line:
 addi	$sp,$sp,-4 		# Criando pilha para adcionar o valor de $so		
@@ -84,11 +115,11 @@ lb	$t3,0($a0)		       # Coloca o byte/caractere armazenado no endereço $t1 no r
 bne	$t3,$s2,save_line_on_buffer    # Se o byte/caractere armazenado no endereço $t3 for diferente a 10 (valor ascii para "\n") pule para save_line_on_buffer
 li  	$v0, 4          	# Syscall - C�digo em v0 para printar string
 la  	$a1, line_buffer	# Buffer linha a ser printada
-syscall            	# Print linha
-# jal xxxx Colocar aqui a subrotina de processar os labels, usar jr para retornar e exercutar a proxima linha abaixo
-# j xxxx subrotina para limpar o line_buffer (ainda tem que ser implementada)
-#addi	$s0,$s0,1	# Incrementa o endereço do buffer para pegar o próximo caractere e montar a linha, linha comentada em quanto a subrotina acima nao for implementada
-# bne $x,$x, compare_to_find_line:  # Implementar aqui uma forma de saber o final do buffer para sair do loop 
+syscall            		# Print linha
+				# jal xxxx Colocar aqui a subrotina de processar os labels, usar jr para retornar e exercutar a proxima linha abaixo
+				# j xxxx subrotina para limpar o line_buffer (ainda tem que ser implementada)
+addi	$s0,$s0,1		# Incrementa o endereço do buffer para pegar o próximo caractere e montar a linha, linha comentada em quanto a subrotina acima nao for implementada
+				# bne $x,$x, compare_to_find_line:  # Implementar aqui uma forma de saber o final do buffer para sair do loop 
 lw	$a0,0($sp)
 addi 	$sp, $sp, 4
 j closefile # Fechando o arquivo por enquanto que nao tem a subrotina de processar labels, apagar essa linha após implementacao 
@@ -106,18 +137,18 @@ li	$v0,16		# Syscall - c�digo em v0 para fechar arquivo
 move	$a1,$a0		# Descri��o do arquivo que dever� ser fechado
 syscall			# Fecha o arquivo
 
-############### Codificando .data e escrevendo no arquivo .mif
+############### Codificando .data e escrevendo no arquivo .mif #############################3
 
-la	$a3,mifdata	# Argumento da rotina = Endere�o do caminho do arquivo mif de .data
+la	$a3,mifdata	# Argumento da rotina = Endere�o do caminho do arquivo mif de .data
 jal	openfile_mif
 
-la	$a3,cabecalho_mifdata	# Argumento da rotina = Endere�o do caminho do arquivo mif de .data
+la	$a3,cabecalho_mifdata	# Argumento da rotina = Endere�o do caminho do arquivo mif de .data
 jal	write_mifcabecalho
 
 ### Loop ate acabar com a codificacao de .data
 jal 	write_mifaddress
 	## [TO DO] Codificao de uma linha de .data botando o resultado em $a3
-		## ATEN�AO: caso utilize o registrador $s0, preservar o valor antigo com pilha!!
+		## ATEN�AO: caso utilize o registrador $s0, preservar o valor antigo com pilha!!
 jal	write_mifcontent
 ### Fim do loop
 
@@ -125,16 +156,16 @@ jal	write_endmif
 
 ############### Codificando .text e escrevendo no arquivo .mif
 
-la	$a3,miftext	# Argumento da rotina = Endere�o do caminho do arquivo mif de .text
+la	$a3,miftext	# Argumento da rotina = Endere�o do caminho do arquivo mif de .text
 jal	openfile_mif
 
-la	$a3,cabecalho_miftext	# Argumento da rotina = Endere�o do caminho do arquivo mif de .text
+la	$a3,cabecalho_miftext	# Argumento da rotina = Endere�o do caminho do arquivo mif de .text
 jal	write_mifcabecalho
 
 ### Loop ate acabar com a codificacao de .data
 jal 	write_mifaddress
 	## [TO DO] Codificao de uma linha de .text botando o resultado em $a3
-		## ATEN�AO: caso utilize o registrador $s0, preservar o valor antigo com pilha!!
+		## ATEN�AO: caso utilize o registrador $s0, preservar o valor antigo com pilha!!
 jal	write_mifcontent
 ### Fim do loop
 
@@ -207,8 +238,8 @@ jr	$ra			# Retorna para onde foi chamado
 to_hexadecimal:
 li	$t1,8			# Contador: [00000000] > hexadecimal de 32 bits
 la	$t2,hexa_ascii		# Onde vai ser guardado o caractere a ser escrito
-addi	$t2,$t2,7		# Para escrever de tr�s para frente
-li	$t3,0xf			# Mascara para fazer a opra��o and e selecionar os 4 bits a serem convertidos no valor correspondente hexadecimal
+addi	$t2,$t2,7		# Para escrever de tr�s para frente
+li	$t3,0xf			# Mascara para fazer a opra��o and e selecionar os 4 bits a serem convertidos no valor correspondente hexadecimal
 loop_to_hexadecimal:
 beqz 	$t1,endloop		# Se o contador for zero, finaliza o loop
 and 	$t4,$a3,$t3		# And com mascara "1111" para selecionar 4 bits
@@ -220,7 +251,7 @@ soma_48:
 addi 	$t4,$t4,48
 store_hex:			
 sb	$t4,0($t2)		# Guarda o valor convertido em "address"
-addi	$t2,$t2,-1		# Decrementa o endere�o de "address" (pois estamos escrevendo de tr�s para frente)
+addi	$t2,$t2,-1		# Decrementa o endere�o de "address" (pois estamos escrevendo de tr�s para frente)
 addi	$t1,$t1,-1		# Decrementa o contador
 j	loop_to_hexadecimal	# Volta para o loop
 endloop:
