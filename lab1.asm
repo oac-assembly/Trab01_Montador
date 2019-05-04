@@ -113,6 +113,8 @@ addi	$s2,$s2,10		# Coloca o valor 10 (valor ascii para "\n") no registrador $s1
 compare_to_find_line:
 lb	$t3,0($a0)		       # Coloca o byte/caractere armazenado no endereço $t1 no registrador $t3
 bne	$t3,$s2,save_line_on_buffer    # Se o byte/caractere armazenado no endereço $t3 for diferente a 10 (valor ascii para "\n") pule para save_line_on_buffer
+addi	$t4,$t4, 0		# Codigo ascii /0 
+sb	$t4,0($t2)		# Coloca o /0 na ultima linha do line_buffer
 li  	$v0, 4          	# Syscall - C�digo em v0 para printar string
 la  	$a1, line_buffer	# Buffer linha a ser printada
 syscall            		# Print linha
