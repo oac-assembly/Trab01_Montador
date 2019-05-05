@@ -118,13 +118,11 @@ sb	$t4,0($t2)		# Coloca o /0 na ultima linha do line_buffer
 li  	$v0, 4          	# Syscall - C�digo em v0 para printar string
 la  	$a1, line_buffer	# Buffer linha a ser printada
 syscall            		# Print linha
-				# jal xxxx Colocar aqui a subrotina de processar os labels, usar jr para retornar e exercutar a proxima linha abaixo
 				# j xxxx subrotina para limpar o line_buffer (ainda tem que ser implementada)
-addi	$s0,$s0,1		# Incrementa o endereço do buffer para pegar o próximo caractere e montar a linha, linha comentada em quanto a subrotina acima nao for implementada
-				# bne $x,$x, compare_to_find_line:  # Implementar aqui uma forma de saber o final do buffer para sair do loop 
+#addi	$s0,$s0,1		# Incrementa o endereço do buffer para pegar o próximo caractere e montar a linha, linha comentada em quanto a subrotina acima nao for implementada
 lw	$a0,0($sp)
 addi 	$sp, $sp, 4
-j closefile # Fechando o arquivo por enquanto que nao tem a subrotina de processar labels, apagar essa linha após implementacao 
+jr 	$ra    			# Retorna para o endereco que foi chamado 
 
 ### Coloca o byte/caractere de buffer em line_buffer
 save_line_on_buffer:
